@@ -1,6 +1,5 @@
-name: example_flutter
-description: An example project for flutter-desktop-embedding.
-
+name: multiplayer_asteroids_game_flutter
+description: Flutter client for Astroids.
 environment:
   sdk: '>=2.0.0 <3.0.0'
   # The example interacts with build scripts on the Flutter side that are not
@@ -13,6 +12,9 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^0.1.0
+
+  multiplayer_asteroids_common:
+    path: ../common/
 
 dev_dependencies:
   flutter_test:
