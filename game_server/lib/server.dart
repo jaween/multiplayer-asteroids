@@ -34,15 +34,20 @@ class Server {
         print("From ${datagram.address.address}:${datagram.port} '$message'");
         final clientAddressPort =
             "${datagram.address.address}:${datagram.port}";
-        _clients[clientAddressPort] = Client(datagram.address, datagram.port)
-          ..lastSeen = DateTime.now();
-        _gameLoop.addPlayer(clientAddressPort);
+
+        if (_clients.containsKey(clientAddressPort)) {
+          _clients[clientAddressPort].lastSeen = DateTime.now();
+        } else {
+          _clients[clientAddressPort] = Client(datagram.address, datagram.port)
+            ..lastSeen = DateTime.now();
+          _gameLoop.addPlayer(clientAddressPort);
+        }
       }
     });
   }
 
   void _updateState() {
-    Timer.periodic(Duration(milliseconds: 8), (_) {
+    Timer.periodic(Duration(milliseconds: 16), (_) {
       _gameLoop.update();
       _clients.values.forEach((client) {
         final message = jsonEncode(serializers.serialize(_gameLoop.gameState));
