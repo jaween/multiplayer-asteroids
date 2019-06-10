@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:multiplayer_asteroids_common/common.dart';
 import 'package:multiplayer_asteroids_game_server/game_loop.dart';
 
 class Client {
@@ -40,11 +42,11 @@ class Server {
   }
 
   void _updateState() {
-    Timer.periodic(Duration(milliseconds: 4), (_) {
+    Timer.periodic(Duration(milliseconds: 8), (_) {
       _gameLoop.update();
       _clients.values.forEach((client) {
-        _socket.send(_gameLoop.gameState.toString().codeUnits, client.address,
-            client.port);
+        final message = jsonEncode(serializers.serialize(_gameLoop.gameState));
+        _socket.send(message.codeUnits, client.address, client.port);
       });
     });
   }

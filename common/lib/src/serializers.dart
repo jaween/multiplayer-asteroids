@@ -9,10 +9,10 @@ import 'package:multiplayer_asteroids_common/src/request.dart';
 part 'serializers.g.dart';
 
 @SerializersFor(const [
-  Request,
+  Asteroid,
   GameState,
   Player,
-  Asteroid,
+  Request,
 ])
 final Serializers serializers =
     (_$serializers.toBuilder()..addPlugin(new StandardJsonPlugin())).build();

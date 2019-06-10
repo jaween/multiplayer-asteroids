@@ -5,8 +5,8 @@ part 'player.g.dart';
 
 abstract class Player implements Built<Player, PlayerBuilder> {
   String get name;
-  String get x;
-  String get y;
+  double get x;
+  double get y;
 
   Player._();
   factory Player([updates(PlayerBuilder b)]) = _$Player;

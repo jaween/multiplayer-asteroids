@@ -32,28 +32,34 @@ class GameLoop {
 
   void update() {
     // Asteroid locations
-    gameState.asteroids.forEach((asteroid) {
-      var newX = asteroid.x + cos(asteroid.angle) * asteroid.speed;
-      var newY = asteroid.y + sin(asteroid.angle) * asteroid.speed;
+    gameState = gameState.rebuild((b) {
+      final asteroids = b.asteroids.build().map((asteroid) {
+        var newX = asteroid.x + cos(asteroid.angle) * asteroid.speed;
+        var newY = asteroid.y + sin(asteroid.angle) * asteroid.speed;
 
-      // Horizontal wrapping
-      if (newX < -asteroid.size) {
-        newX = width;
-      } else if (newX > width) {
-        newX = -asteroid.size;
-      }
+        // Horizontal wrapping
+        if (newX < -asteroid.size) {
+          newX = width;
+        } else if (newX > width) {
+          newX = -asteroid.size;
+        }
 
-      // Vertical wrapping
-      if (newY < -asteroid.size) {
-        newY = height;
-      } else if (newY > height) {
-        newY = -asteroid.size;
-      }
+        // Vertical wrapping
+        if (newY < -asteroid.size) {
+          newY = height;
+        } else if (newY > height) {
+          newY = -asteroid.size;
+        }
 
-      asteroid = asteroid
-        ..rebuild((b) => b
+        return Asteroid(((b) => b
           ..x = newX
-          ..y = newY);
+          ..y = newY
+          ..speed = asteroid.speed
+          ..size = asteroid.size
+          ..angle = asteroid.angle));
+      }).toList(growable: false);
+
+      b.asteroids = BuiltList<Asteroid>.from(asteroids).toBuilder();
     });
   }
 
