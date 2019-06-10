@@ -1,0 +1,4 @@
+name: multiplayer_asteroids_game_server
+description: Server-side core of the Astroids game supporting multiple players.
+version: 0.0.0+1
+dependencies:
