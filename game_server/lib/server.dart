@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
-import 'game_loop.dart';
+
+import 'package:multiplayer_asteroids_game_server/game_loop.dart';
 
 class Client {
   final InternetAddress address;
@@ -29,8 +30,10 @@ class Server {
       if (datagram != null) {
         final message = String.fromCharCodes(datagram.data).trim();
         print("From ${datagram.address.address}:${datagram.port} '$message'");
-        final clientAddressPort = "${datagram.address.address}:${datagram.port}";
-        _clients[clientAddressPort] = Client(datagram.address, datagram.port)..lastSeen = DateTime.now();
+        final clientAddressPort =
+            "${datagram.address.address}:${datagram.port}";
+        _clients[clientAddressPort] = Client(datagram.address, datagram.port)
+          ..lastSeen = DateTime.now();
         _gameLoop.addPlayer(clientAddressPort);
       }
     });
@@ -40,7 +43,8 @@ class Server {
     Timer.periodic(Duration(milliseconds: 4), (_) {
       _gameLoop.update();
       _clients.values.forEach((client) {
-        _socket.send(_gameLoop.gameState.toString().codeUnits, client.address, client.port);
+        _socket.send(_gameLoop.gameState.toString().codeUnits, client.address,
+            client.port);
       });
     });
   }
@@ -48,9 +52,10 @@ class Server {
   void _removeOldClients() {
     Timer.periodic(Duration(seconds: 8), (_) {
       final clientsToRemove = _clients.entries
-        .where((entry) => DateTime.now().difference(entry.value.lastSeen).inSeconds > 8)
-        .map((entry) => entry.key)
-        .toList(growable: false);
+          .where((entry) =>
+              DateTime.now().difference(entry.value.lastSeen).inSeconds > 8)
+          .map((entry) => entry.key)
+          .toList(growable: false);
       if (clientsToRemove.length > 0) {
         print("Dropping clients: $clientsToRemove");
         clientsToRemove.forEach((client) {

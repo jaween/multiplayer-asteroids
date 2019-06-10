@@ -1,6 +1,7 @@
 import 'dart:math';
 
-import 'game_state.dart';
+import 'package:built_collection/built_collection.dart';
+import 'package:multiplayer_asteroids_common/common.dart';
 
 class GameLoop {
   static const double width = 1000;
@@ -14,15 +15,19 @@ class GameLoop {
 
   GameState _create() {
     final random = Random();
-    return GameState()
-      ..asteroids = List.generate(random.nextInt(6) + 2, (_) {
-        return Asteroid()
-          ..angle = random.nextDouble() * pi * 2
-          ..size = random.nextDouble() * 5 + 1
-          ..x = random.nextDouble() * width
-          ..y = random.nextDouble() * height
-          ..speed = random.nextDouble() * 3 + 1;
-      });
+
+    final asteroidsList = List.generate(random.nextInt(6) + 2, (_) {
+      return Asteroid((b) => b
+        ..angle = random.nextDouble() * pi * 2
+        ..size = random.nextDouble() * 5 + 1
+        ..x = random.nextDouble() * width
+        ..y = random.nextDouble() * height
+        ..speed = random.nextDouble() * 3 + 1);
+    });
+
+    return GameState((b) => b
+      ..asteroids = BuiltList.of(asteroidsList).toBuilder()
+      ..players = BuiltList.of(<Player>[]).toBuilder());
   }
 
   void update() {
@@ -45,20 +50,14 @@ class GameLoop {
         newY = -asteroid.size;
       }
 
-      asteroid.x = newX;
-      asteroid.y = newY;
+      asteroid = asteroid
+        ..rebuild((b) => b
+          ..x = newX
+          ..y = newY);
     });
-
-    for (var i = 0; i < gameState.asteroids.length; i++) {
-      print("  $i) ${gameState.asteroids[i]}");
-    }
   }
 
-  void addPlayer(String playerId) {
+  void addPlayer(String playerId) {}
 
-  }
-
-  void removePlayer(String playerId) {
-    
-  }
+  void removePlayer(String playerId) {}
 }
