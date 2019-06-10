@@ -10,7 +10,7 @@ abstract class Asteroid implements Built<Asteroid, AsteroidBuilder> {
   double get angle;
   double get size;
 
-    Asteroid._();
-    factory Asteroid([updates(AsteroidBuilder b)]) = _$Asteroid;
-    static Serializer<Asteroid> get serializer => _$asteroidSerializer;
+  Asteroid._();
+  factory Asteroid([updates(AsteroidBuilder b)]) = _$Asteroid;
+  static Serializer<Asteroid> get serializer => _$asteroidSerializer;
 }

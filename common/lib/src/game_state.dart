@@ -4,6 +4,7 @@ import 'package:multiplayer_asteroids_common/src/player.dart';
 
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
+
 part 'game_state.g.dart';
 
 abstract class GameState implements Built<GameState, GameStateBuilder> {
