@@ -6,3 +6,5 @@ environment:
 dependencies:
   multiplayer_asteroids_common:
     path: ../common/
+dev_dependencies:
+  js: ^0.6.0

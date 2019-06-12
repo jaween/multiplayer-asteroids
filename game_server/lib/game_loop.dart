@@ -16,13 +16,13 @@ class GameLoop {
   GameState _create() {
     final random = Random();
 
-    final asteroidsList = List.generate(random.nextInt(6) + 2, (_) {
+    final asteroidsList = List.generate(random.nextInt(10) + 2, (_) {
       return Asteroid((b) => b
         ..angle = random.nextDouble() * pi * 2
-        ..size = random.nextDouble() * 5 + 1
+        ..size = random.nextDouble() * 40 + 10
         ..x = random.nextDouble() * width
         ..y = random.nextDouble() * height
-        ..speed = random.nextDouble() * 3 + 1);
+        ..speed = random.nextDouble() * 2 + 3);
     });
 
     return GameState((b) => b
@@ -39,15 +39,15 @@ class GameLoop {
 
         // Horizontal wrapping
         if (newX < -asteroid.size) {
-          newX = width;
-        } else if (newX > width) {
+          newX = width + asteroid.size;
+        } else if (newX > width + asteroid.size) {
           newX = -asteroid.size;
         }
 
         // Vertical wrapping
         if (newY < -asteroid.size) {
-          newY = height;
-        } else if (newY > height) {
+          newY = height + asteroid.size;
+        } else if (newY > height + asteroid.size) {
           newY = -asteroid.size;
         }
 
