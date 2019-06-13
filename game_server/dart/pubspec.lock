@@ -57,6 +57,20 @@ packages:
       relative: true
     source: path
     version: "0.0.0+1"
+  node_interop:
+    dependency: transitive
+    description:
+      name: node_interop
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.0.3"
+  node_io:
+    dependency: "direct dev"
+    description:
+      name: node_io
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.0.1"
   path:
     dependency: transitive
     description:
@@ -79,4 +93,4 @@ packages:
     source: hosted
     version: "1.9.3"
 sdks:
-  dart: ">=2.0.0 <3.0.0"
+  dart: ">=2.1.0 <3.0.0"

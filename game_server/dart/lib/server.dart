@@ -6,6 +6,7 @@ import 'package:multiplayer_asteroids_common/common.dart';
 import 'package:multiplayer_asteroids_game_server/comms/comms.dart';
 import 'package:multiplayer_asteroids_game_server/comms/comms_server_js.dart';
 import 'package:multiplayer_asteroids_game_server/game_loop.dart';
+import 'package:node_io/node_io.dart';
 
 class Client {
   final String address;
@@ -27,7 +28,7 @@ class Server {
   }
 
   void _listen() async {
-    final port = 8081;
+    final port = int.parse(Platform.environment['PORT']) ?? 8081;
     CommsServerJs(port, _onConnection);
     print("Starting server on ${port}");
   }

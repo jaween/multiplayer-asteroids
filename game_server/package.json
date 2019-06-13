@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "./build.sh && node build/main.js",
-    "_start": "node build/main.js",
-    "start": "node simple_ws.js"
+    "dev": "mkdir build && ./build.sh && node build/main.js",
+    "start": "mkdir build && ./build.sh && node build/main.js",
+    "deploy": "cd .. && git subtree push --prefix game_server heroku master --force"
   },
   "keywords": [],
   "author": "Jaween Ediriweera",
