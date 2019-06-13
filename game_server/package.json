@@ -5,9 +5,10 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "mkdir build && ./build.sh && node build/main.js",
-    "start": "mkdir build && ./build.sh && node build/main.js",
-    "deploy": "cd .. && git subtree push --prefix game_server heroku master --force"
+    "_build": "mkdir -p build && ./build.sh",
+    "start": "node build/main.js",
+    "dev": "npm run _build && npm run start",
+    "deploy": "npm run _build && cd .. && git subtree push --prefix game_server heroku master"
   },
   "keywords": [],
   "author": "Jaween Ediriweera",
@@ -15,5 +16,6 @@
   "dependencies": {
     "isomorphic-ws": "^4.0.1",
     "ws": "^7.0.0"
-  }
+  },
+  "heroku-run-build-script": false
 }
