@@ -3,9 +3,9 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:multiplayer_asteroids_common/common.dart';
+import 'package:multiplayer_asteroids_game_server/comms/comms.dart';
+import 'package:multiplayer_asteroids_game_server/comms/comms_server_js.dart';
 import 'package:multiplayer_asteroids_game_server/game_loop.dart';
-import 'package:multiplayer_asteroids_game_server/udp/udp.dart';
-import 'package:multiplayer_asteroids_game_server/udp/udp_socket.dart';
 
 class Client {
   final String address;
@@ -17,8 +17,8 @@ class Client {
 
 class Server {
   final _clients = <String, Client>{};
+  final _clientSockets = <String, Socket>{};
   final _gameLoop = GameLoop();
-  final _udpSocket = UdpSocket();
 
   Server() {
     _listen();
@@ -27,38 +27,38 @@ class Server {
   }
 
   void _listen() async {
-    _udpSocket.listen(
-      4444,
-      onListening: (String address, int port) {
-        print("Starting server on ${address}:${port}");
-      },
-      onMessage: (Uint8List message, RInfo rinfo) {
-        final messageString = String.fromCharCodes(message);
-        print("From ${rinfo.address}:${rinfo.port} '$messageString'");
-        final clientAddressPort =
-            "${rinfo.address}:${rinfo.port}";
+    final port = 8081;
+    CommsServerJs(port, _onConnection);
+    print("Starting server on ${port}");
+  }
 
-        if (_clients.containsKey(clientAddressPort)) {
-          _clients[clientAddressPort].lastSeen = DateTime.now();
-        } else {
-          _clients[clientAddressPort] = Client(rinfo.address, rinfo.port)
-            ..lastSeen = DateTime.now();
-          _gameLoop.addPlayer(clientAddressPort);
-        }
+  void _onConnection(Socket socket, ClientInfo clientInfo) {
+    final clientAddressPort = "${clientInfo.address}:${clientInfo.port}";
+    print("Client connected $clientAddressPort");
 
-      },
-      onError: (err) {
-        print("Error $err");
+    _clientSockets[clientAddressPort] = socket;
+
+    socket.listen((data) {
+      final messageString = String.fromCharCodes(data);
+      print("From $clientAddressPort '$messageString'");
+
+      if (_clients.containsKey(clientAddressPort)) {
+        _clients[clientAddressPort].lastSeen = DateTime.now();
+      } else {
+        _clients[clientAddressPort] =
+            Client(clientInfo.address, clientInfo.port)
+              ..lastSeen = DateTime.now();
+        _gameLoop.addPlayer(clientAddressPort);
       }
-    );
+    });
   }
 
   void _updateState() {
     Timer.periodic(Duration(milliseconds: 16), (_) {
       _gameLoop.update();
-      _clients.values.forEach((client) {
+      _clientSockets.forEach((client, socket) {
         final message = jsonEncode(serializers.serialize(_gameLoop.gameState));
-        _udpSocket.send(Uint8List.fromList(message.codeUnits), client.address, client.port);
+        socket.send(Uint8List.fromList(message.codeUnits));
       });
     });
   }

@@ -53,7 +53,7 @@ packages:
   multiplayer_asteroids_common:
     dependency: "direct main"
     description:
-      path: "../common"
+      path: "../../common"
       relative: true
     source: path
     version: "0.0.0+1"
