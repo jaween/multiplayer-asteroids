@@ -1,0 +1,18 @@
+{
+  "name": "game_server",
+  "version": "0.0.1",
+  "description": "Server-side core of the Astroids game supporting multiple players.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "./build.sh && node build/main.js",
+    "start": "node build/main.js"
+  },
+  "keywords": [],
+  "author": "Jaween Ediriweera",
+  "license": "ISC",
+  "dependencies": {
+    "isomorphic-ws": "^4.0.1",
+    "ws": "^7.0.0"
+  }
+}
