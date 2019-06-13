@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "./build.sh && node build/main.js",
-    "start": "node build/main.js"
+    "_start": "node build/main.js",
+    "start": "node simple_ws.js"
   },
   "keywords": [],
   "author": "Jaween Ediriweera",
