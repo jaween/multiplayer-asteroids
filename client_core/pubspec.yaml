@@ -1,0 +1,10 @@
+name: multiplayer_asteroids_client_core
+description: Client-side core of Astroids supporting multiple players.
+version: 0.0.0+1
+environment:
+  sdk: ">=2.0.0-dev.68.0 <3.0.0"
+dependencies:
+  multiplayer_asteroids_common:
+    path: ../common/
+dev_dependencies:
+  js: ^0.6.0
