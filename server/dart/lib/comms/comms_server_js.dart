@@ -9,14 +9,16 @@ import 'package:multiplayer_asteroids_server/comms/websocket/websocket_impl.dart
 class CommsServerJs implements CommsServer {
   WebSocketServer _webSocketServer;
 
-  CommsServerJs(int port, void onConnection(Socket socket, ClientInfo client)) {
-    _webSocketServer = WebSocketServer(port, allowInterop((socket, client) {
+  start(int port, void onConnection(Socket socket, ClientInfo client)) {
+    _webSocketServer?.close();
+    _webSocketServer = WebSocketServer();
+    _webSocketServer.start(port, allowInterop((socket, client) {
       onConnection(_SocketInteropWrapper(socket), client);
     }));
   }
 
   @override
-  void close() => _webSocketServer.close();
+  void close() => _webSocketServer?.close();
 }
 
 /// Wraps the Socket to allow a Dart function to be used as a callback for the

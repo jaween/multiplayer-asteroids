@@ -1,7 +1,7 @@
 const IsoWebSocket = require('isomorphic-ws');
 
 class WebSocketServer {
-  constructor(port, onConnection) {
+  start(port, onConnection) {
     this.binding = new IsoWebSocket.Server({ port: port });
     this.binding.on('connection', function (socket, request) {
       onConnection(
@@ -20,7 +20,7 @@ class WebSocketServer {
 }
 
 class WebSocketClient {
-  constructor(host, port, onConnected) {
+  start(host, port, onConnected) {
     this.socket = new WebSocket(`ws://${host}:${port}`);
     this.socket.on('open', onConnected(new WebSocket(this.socket)));
   }
