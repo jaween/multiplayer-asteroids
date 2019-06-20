@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:multiplayer_asteroids_client_core/client_core.dart';
+import 'package:multiplayer_asteroids_client_flutter/comms/comms_client_websocket.dart';
 import 'package:multiplayer_asteroids_common/common.dart';
-import 'package:multiplayer_asteroids_client_flutter/network.dart';
 
 class Asteroids extends StatefulWidget {
   @override
@@ -12,20 +12,22 @@ class _AsteroidsState extends State<Asteroids> {
   GameClient _gameClient;
   GameState _gameState;
 
-  final _network = Network();
-
   @override
   void initState() {
     super.initState();
-    _network.setupClient((gameState) {
-      setState(() => this._gameState = gameState);
+    final host = "ws://192.168.1.117";
+    final port = 8081;
+    final comms = CommsClientWebsocket();
+    _gameClient = GameClient(host, port, comms);
+    _gameClient.start(onGameStateUpdated: (gameState) {
+      setState(() => _gameState = gameState);
     });
   }
 
   @override
   void dispose() {
     super.dispose();
-    _network.dispose();
+    _gameClient.dispose();
   }
 
   @override
@@ -35,8 +37,11 @@ class _AsteroidsState extends State<Asteroids> {
         child: Text("Connecting..."),
       );
     }
-    return CustomPaint(
-      painter: AsteroidsPaint(_gameState),
+    return Container(
+      constraints: BoxConstraints.expand(),
+      child: CustomPaint(
+        painter: AsteroidsPaint(_gameState),
+      ),
     );
   }
 }
@@ -58,8 +63,7 @@ class AsteroidsPaint extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.drawColor(Colors.black, BlendMode.color);
-
+    canvas.drawColor(Colors.black, BlendMode.clear);
     gameState.asteroids.forEach((asteroid) {
       final offset = _posToOffset(asteroid.x, asteroid.y, size);
       final radius = _sizeToRadius(asteroid.size, size);

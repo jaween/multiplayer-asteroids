@@ -12,7 +12,10 @@ class Game extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: Asteroids(),
+      theme: ThemeData.dark(),
+      home: Scaffold(
+        body: Asteroids(),
+      ),
     );
   }
 }
