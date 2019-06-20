@@ -7055,18 +7055,15 @@
   },
   F = {
     main: function() {
-      var canvas, context, p, webSocket,
-        _s25_ = '{"test": 5, "wow": "yay"}';
+      var canvas, context, p, webSocket;
       P.print("I am Dart");
       canvas = H.interceptedTypeCheck(W.querySelector("#canvas"), "$isCanvasElement");
       context = (canvas && C.CanvasElement_methods).get$context2D(canvas);
       context.fillStyle = "black";
       (context && C.CanvasRenderingContext2D_methods).fillRect$4(context, 0, 0, canvas.width, canvas.height);
-      P.print(_s25_);
-      P.print(P.jsonDecode(_s25_));
       p = W.querySelector("#debug");
       p.textContent = "Connected";
-      webSocket = W.WebSocket_WebSocket("ws://jaween-multiplayer-asteroids.herokuapp.com:80");
+      webSocket = W.WebSocket_WebSocket("wss://jaween-multiplayer-asteroids.herokuapp.com:80");
       J.get$first$z((webSocket && C.WebSocket_methods).get$onOpen(webSocket)).then$1$1(new F.main_closure(webSocket, canvas, context), null);
       J.get$first$z(C.WebSocket_methods.get$onError(webSocket)).then$1$1(new F.main_closure0(p), null);
     },

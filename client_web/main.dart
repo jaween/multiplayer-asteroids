@@ -16,7 +16,7 @@ void main() {
   final host = 'jaween-multiplayer-asteroids.herokuapp.com';
   final port = 80;
   //final port = 8001;
-  var webSocket = WebSocket('ws://$host:$port');
+  var webSocket = WebSocket('wss://$host:$port');
   webSocket.onOpen.first.then((_) {
     webSocket.onMessage.listen((MessageEvent e) {
       final Blob blob = e.data;
