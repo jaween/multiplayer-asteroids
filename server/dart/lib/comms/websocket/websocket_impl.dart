@@ -6,6 +6,7 @@ import 'package:js/js.dart';
 
 @JS()
 class WebSocketServer implements CommsServer {
+  external factory WebSocketServer();
   external void start(
     int port,
     void onConnection(WebSocket socket, ClientInfo client),
@@ -15,6 +16,7 @@ class WebSocketServer implements CommsServer {
 
 @JS()
 class WebSocketClient implements CommsClient {
+  external factory WebSocketClient();
   external void start(
     String host,
     int port,

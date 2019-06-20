@@ -27,7 +27,8 @@ class Server {
   }
 
   void _listen() async {
-    final port = int.parse(Platform.environment['PORT']) ?? 8081;
+    final envPort = Platform.environment['PORT'];
+    final port = envPort == null ? 8081 : int.parse(envPort);
     final commsServer = CommsServerJs();
     commsServer.start(port, _onConnection);
     print("Starting server on ${port}");
