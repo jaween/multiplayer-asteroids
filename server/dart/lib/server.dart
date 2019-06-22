@@ -54,19 +54,27 @@ class Server {
 
     _clientSockets[clientAddressPort] = socket;
 
-    socket.listen((data) => _onMessage(clientAddressPort, clientInfo, data));
+    socket.listen((data) => _onMessage(
+          socket,
+          clientAddressPort,
+          clientInfo,
+          data,
+        ));
   }
 
   void _onMessage(
+    Socket socket,
     String clientAddressPort,
     ClientInfo clientInfo,
     dynamic data,
   ) {
+    final receiveTime = DateTime.now();
+
     if (data is Uint8List) {
       final json = String.fromCharCodes(data);
       final message = Message.fromJson(json);
       if (message is UserCommandMessage) {
-        _onUserCommandMessage(clientInfo, message);
+        _onUserCommandMessage(socket, clientInfo, message, receiveTime);
       }
     } else {
       print("Unknown data received $data");
@@ -74,10 +82,22 @@ class Server {
   }
 
   void _onUserCommandMessage(
+    Socket socket,
     ClientInfo clientInfo,
     UserCommandMessage message,
+    DateTime receiveTime,
   ) {
-    // TODO
+    final processingTime = DateTime.now().difference(receiveTime);
+    final ackMessage = AckMessage((b) => b
+      ..tick = message.tick
+      ..processingTimeMicro = processingTime.inMicroseconds);
+
+    int ticksAhead = message.tick - _serverTick;
+    if (ticksAhead.isNegative) {
+      print("${DateTime.now()} late by ${ticksAhead.abs()} ticks");
+    }
+
+    _send(socket, ackMessage);
   }
 
   void _updateState() {

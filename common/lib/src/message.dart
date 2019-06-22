@@ -8,6 +8,7 @@ import 'package:multiplayer_asteroids_common/src/world_state.dart';
 
 part 'message.g.dart';
 
+/// A message to be serialized and sent across the network.
 @BuiltValue(instantiable: false)
 abstract class Message {
   static fromJson(String jsonString) =>
@@ -64,4 +65,19 @@ abstract class UserCommandMessage
 
   static UserCommandMessage fromJson(String jsonString) => serializers
       .deserializeWith(UserCommandMessage.serializer, jsonDecode(jsonString));
+}
+
+/// Acknowledgement for a the input sent at a given tick.
+@BuiltValue(wireName: "ackMessage")
+abstract class AckMessage
+    implements Message, Built<AckMessage, AckMessageBuilder> {
+  int get tick;
+  int get processingTimeMicro;
+
+  AckMessage._();
+  factory AckMessage([updates(AckMessageBuilder b)]) = _$AckMessage;
+  static Serializer<AckMessage> get serializer => _$ackMessageSerializer;
+
+  static AckMessage fromJson(String jsonString) => serializers.deserializeWith(
+      AckMessage.serializer, jsonDecode(jsonString));
 }

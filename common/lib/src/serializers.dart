@@ -11,6 +11,7 @@ part 'serializers.g.dart';
 
 /// Serializers for network messages
 @SerializersFor(const [
+  AckMessage,
   ConnectMessage,
   UserCommandMessage,
   WorldStateMessage,

@@ -30,6 +30,8 @@ class GameClient {
   Map<int, WorldState> _worldStates = {};
   Set<String> _inputState = {};
   Map<int, Set<String>> _pastInputStates = {};
+  Map<int, DateTime> _ticksAwaitingAck = {};
+  double _roundTripTimeMs = 0;
 
   GameClient(this._host, this._port, this._commsClient);
 
@@ -131,15 +133,20 @@ class GameClient {
   }
 
   void _sendInput(int tick) {
-    final message = UserCommandMessage((b) {
-      b
-        ..tick = tick
-        ..userCommand = UserCommand((b) {
-          b..commands = BuiltSet<String>.from(_inputState).toBuilder();
-        }).toBuilder();
-    });
+    // Send the message for a future tick
+    final rttInTicks =
+        (_roundTripTimeMs / _connectMessage.serverStateUpdateMs).ceil();
+    final ticksInTheFuture = rttInTicks + 25;
+    final futureTick = tick + ticksInTheFuture;
+
+    final message = UserCommandMessage((b) => b
+      ..tick = futureTick
+      ..userCommand = UserCommand((b) {
+        b..commands = BuiltSet<String>.from(_inputState).toBuilder();
+      }).toBuilder());
+    _ticksAwaitingAck[futureTick] = DateTime.now();
     _send(message);
-    _pastInputStates[tick] = Set<String>.from(_inputState);
+    _pastInputStates[futureTick] = Set<String>.from(_inputState);
   }
 
   void _onConnected(Socket socket) {
@@ -161,6 +168,8 @@ class GameClient {
         _onConnectMessage(message);
       } else if (message is WorldStateMessage) {
         _onWorldStateMessage(message);
+      } else if (message is AckMessage) {
+        _onAckMessage(message);
       }
     } else {
       print("Unknown data on socket $data");
@@ -204,6 +213,23 @@ class GameClient {
     _worldStates.removeWhere((key, value) => key < message.serverTick - 50);
 
     // Replays past input events
+  }
+
+  void _onAckMessage(AckMessage message) {
+    final receiveTime = DateTime.now();
+
+    if (!_ticksAwaitingAck.containsKey(message.tick)) {
+      return;
+    }
+
+    final sendTime = _ticksAwaitingAck[message.tick];
+    final processingMs = message.processingTimeMicro / 1000;
+    _ticksAwaitingAck.remove(message.tick);
+
+    _roundTripTimeMs =
+        receiveTime.difference(sendTime).inMilliseconds - processingMs;
+    _debugInfo.rttMs = _roundTripTimeMs;
+    _onDebugInfoUpdated(_debugInfo);
   }
 
   void input(bool down, String action) =>
