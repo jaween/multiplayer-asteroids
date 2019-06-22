@@ -159,6 +159,21 @@ class AsteroidsPaint extends CustomPainter {
       final radius = _sizeToRadius(asteroid.size, size);
       canvas.drawCircle(offset, radius, _asteroidPaint);
     });
+
+    final playerSize = _sizeToRadius(60, size);
+    final shipPath = Path()
+      ..moveTo(-playerSize / 2, -playerSize / 3)
+      ..lineTo(playerSize / 2, 0)
+      ..lineTo(-playerSize / 2, playerSize / 3)
+      ..lineTo(-playerSize / 3, 0)
+      ..close();
+    worldState.players.forEach((id, player) {
+      final o = _posToOffset(player.x, player.y, size);
+      final transformed = shipPath
+          .transform(Matrix4.rotationZ(player.angle).storage)
+          .transform(Matrix4.translationValues(o.dx, o.dy, 0).storage);
+      canvas.drawPath(transformed, _asteroidPaint);
+    });
   }
 
   Offset _posToOffset(double x, double y, Size size) {

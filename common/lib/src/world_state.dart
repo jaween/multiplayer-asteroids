@@ -7,7 +7,7 @@ import 'package:multiplayer_asteroids_common/src/player.dart';
 part 'world_state.g.dart';
 
 abstract class WorldState implements Built<WorldState, WorldStateBuilder> {
-  BuiltList<Player> get players;
+  BuiltMap<int, Player> get players;
   BuiltList<Asteroid> get asteroids;
 
   WorldState._();

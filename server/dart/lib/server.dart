@@ -23,6 +23,8 @@ class Server {
   final _updateRate = const Duration(milliseconds: 16);
   final _publishRate = const Duration(milliseconds: 100);
 
+  final _userCommands = <int, Map<int, Set<String>>>{};
+
   int _serverTick = 0;
 
   Server() {
@@ -45,6 +47,9 @@ class Server {
     final clientAddressPort = "${clientInfo.address}:${clientInfo.port}";
     print("Client connected $clientAddressPort");
 
+    _gameLoop.addPlayer(playerId);
+    _clientSockets[clientAddressPort] = socket;
+
     final connectMessage = ConnectMessage((b) => b
       ..serverTick = _serverTick
       ..serverStateUpdateMs = _updateRate.inMilliseconds
@@ -52,12 +57,11 @@ class Server {
       ..playerId = playerId);
     _send(socket, connectMessage);
 
-    _clientSockets[clientAddressPort] = socket;
-
     socket.listen((data) => _onMessage(
           socket,
           clientAddressPort,
           clientInfo,
+          playerId,
           data,
         ));
   }
@@ -66,6 +70,7 @@ class Server {
     Socket socket,
     String clientAddressPort,
     ClientInfo clientInfo,
+    int playerId,
     dynamic data,
   ) {
     final receiveTime = DateTime.now();
@@ -74,7 +79,13 @@ class Server {
       final json = String.fromCharCodes(data);
       final message = Message.fromJson(json);
       if (message is UserCommandMessage) {
-        _onUserCommandMessage(socket, clientInfo, message, receiveTime);
+        _onUserCommandMessage(
+          socket,
+          clientInfo,
+          playerId,
+          message,
+          receiveTime,
+        );
       }
     } else {
       print("Unknown data received $data");
@@ -84,18 +95,23 @@ class Server {
   void _onUserCommandMessage(
     Socket socket,
     ClientInfo clientInfo,
+    int playerId,
     UserCommandMessage message,
     DateTime receiveTime,
   ) {
+    int ticksAhead = message.tick - _serverTick;
+    if (ticksAhead.isNegative) {
+      print("${DateTime.now()} late by ${ticksAhead.abs()} ticks");
+    } else {
+      _userCommands.putIfAbsent(message.tick, () => <int, Set<String>>{});
+      _userCommands[message.tick][playerId] =
+          message.userCommand.commands.toSet();
+    }
+
     final processingTime = DateTime.now().difference(receiveTime);
     final ackMessage = AckMessage((b) => b
       ..tick = message.tick
       ..processingTimeMicro = processingTime.inMicroseconds);
-
-    int ticksAhead = message.tick - _serverTick;
-    if (ticksAhead.isNegative) {
-      print("${DateTime.now()} late by ${ticksAhead.abs()} ticks");
-    }
 
     _send(socket, ackMessage);
   }
@@ -105,7 +121,8 @@ class Server {
     Timer.periodic(_updateRate, (timer) {
       while (lastUpdateTick < timer.tick) {
         lastUpdateTick++;
-        _gameLoop.update();
+        final commands = _userCommands[_serverTick] ?? {};
+        _gameLoop.update(commands);
         _serverTick++;
       }
     });
@@ -137,7 +154,7 @@ class Server {
         print("Dropping clients: $clientsToRemove");
         clientsToRemove.forEach((client) {
           _clients.remove(client);
-          _gameLoop.removePlayer(client);
+          //_gameLoop.removePlayer(client);
         });
       }
     });
