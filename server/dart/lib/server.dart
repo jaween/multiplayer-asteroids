@@ -23,6 +23,8 @@ class Server {
   final _updateRate = const Duration(milliseconds: 16);
   final _publishRate = const Duration(milliseconds: 100);
 
+  int _serverTick = 0;
+
   Server() {
     _listen();
     _updateState();
@@ -44,7 +46,7 @@ class Server {
     print("Client connected $clientAddressPort");
 
     final connectMessage = ConnectMessage((b) => b
-      ..serverTick = 0
+      ..serverTick = _serverTick
       ..serverStateUpdateMs = _updateRate.inMilliseconds
       ..serverStatePublishMs = _publishRate.inMilliseconds
       ..playerId = playerId);
@@ -74,8 +76,9 @@ class Server {
     int lastUpdateTick = 0;
     Timer.periodic(_updateRate, (timer) {
       while (lastUpdateTick < timer.tick) {
-        _gameLoop.update();
         lastUpdateTick++;
+        _gameLoop.update();
+        _serverTick++;
       }
     });
   }
@@ -86,7 +89,9 @@ class Server {
         _send(
           socket,
           WorldStateMessage(
-            (b) => b..worldState = _gameLoop.worldState.toBuilder(),
+            (b) => b
+              ..serverTick = _serverTick
+              ..worldState = _gameLoop.worldState.toBuilder(),
           ),
         );
       });

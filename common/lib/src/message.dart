@@ -35,6 +35,7 @@ abstract class ConnectMessage
 @BuiltValue(wireName: "worldStateMessage")
 abstract class WorldStateMessage
     implements Message, Built<WorldStateMessage, WorldStateMessageBuilder> {
+  int get serverTick;
   WorldState get worldState;
 
   WorldStateMessage._();
