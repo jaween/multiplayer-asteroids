@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:built_collection/built_collection.dart';
 import 'package:meta/meta.dart';
 import 'package:multiplayer_asteroids_client_core/src/debug_info.dart';
 import 'package:multiplayer_asteroids_common/common.dart';
@@ -14,6 +16,7 @@ class GameClient {
   final String _host;
   final int _port;
   final CommsClient _commsClient;
+  Socket _socket;
 
   OnConnectionStateChanged _onConnectionStateChanged;
   OnWorldStateUpdated _onWorldStateUpdated;
@@ -25,6 +28,8 @@ class GameClient {
   Timer _tickTimer;
   int _clientSideTick;
   Map<int, WorldState> _worldStates = {};
+  Set<String> _inputState = {};
+  Map<int, Set<String>> _pastInputStates = {};
 
   GameClient(this._host, this._port, this._commsClient);
 
@@ -45,7 +50,13 @@ class GameClient {
   }
 
   void _onUpdate(int tick) {
+    _inputPrediction(tick);
     _worldInterpolation(tick);
+    _sendInput(tick);
+  }
+
+  void _inputPrediction(int tick) {
+    // TODO
   }
 
   void _worldInterpolation(int tick) {
@@ -119,15 +130,27 @@ class GameClient {
     });
   }
 
+  void _sendInput(int tick) {
+    final message = UserCommandMessage((b) {
+      b
+        ..tick = tick
+        ..userCommand = UserCommand((b) {
+          b..commands = BuiltSet<String>.from(_inputState).toBuilder();
+        }).toBuilder();
+    });
+    _send(message);
+    _pastInputStates[tick] = Set<String>.from(_inputState);
+  }
+
   void _onConnected(Socket socket) {
     print("Connected");
+    _socket = socket;
     socket.listen(_onMessage);
   }
 
-  void _send(Socket socket, String message) {
-    final request = Request((b) => b..type = message);
-    final json = serializers.serialize(request).toString().codeUnits;
-    socket.send(json);
+  void _send(Message message) {
+    final json = jsonEncode(messageSerializers.serialize(message));
+    _socket.send(Uint8List.fromList(json.codeUnits));
   }
 
   void _onMessage(dynamic data) {
@@ -179,5 +202,10 @@ class GameClient {
   void _onWorldStateMessage(WorldStateMessage message) {
     _worldStates[message.serverTick] = message.worldState;
     _worldStates.removeWhere((key, value) => key < message.serverTick - 50);
+
+    // Replays past input events
   }
+
+  void input(bool down, String action) =>
+      down ? _inputState.add(action) : _inputState.remove(action);
 }

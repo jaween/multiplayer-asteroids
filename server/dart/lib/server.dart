@@ -62,14 +62,22 @@ class Server {
     ClientInfo clientInfo,
     dynamic data,
   ) {
-    final messageString = String.fromCharCodes(data);
-    if (_clients.containsKey(clientAddressPort)) {
-      _clients[clientAddressPort].lastSeen = DateTime.now();
+    if (data is Uint8List) {
+      final json = String.fromCharCodes(data);
+      final message = Message.fromJson(json);
+      if (message is UserCommandMessage) {
+        _onUserCommandMessage(clientInfo, message);
+      }
     } else {
-      _clients[clientAddressPort] = Client(clientInfo.address, clientInfo.port)
-        ..lastSeen = DateTime.now();
-      _gameLoop.addPlayer(clientAddressPort);
+      print("Unknown data received $data");
     }
+  }
+
+  void _onUserCommandMessage(
+    ClientInfo clientInfo,
+    UserCommandMessage message,
+  ) {
+    // TODO
   }
 
   void _updateState() {

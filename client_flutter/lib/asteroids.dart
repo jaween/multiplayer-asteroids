@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:multiplayer_asteroids_client_core/client_core.dart';
 import 'package:multiplayer_asteroids_client_flutter/comms/comms_client_websocket.dart';
@@ -10,17 +12,23 @@ class Asteroids extends StatefulWidget {
 
 class _AsteroidsState extends State<Asteroids> {
   GameClient _gameClient;
-  GameState _gameState;
+  WorldState _worldState;
+  bool _connected = false;
+  DebugInfo _debugInfo;
 
   @override
   void initState() {
     super.initState();
-    final host = "ws://192.168.1.117";
+    final host = "ws://192.168.1.21";
     final port = 8081;
     final comms = CommsClientWebsocket();
     _gameClient = GameClient(host, port, comms);
-    _gameClient.start(onGameStateUpdated: (gameState) {
-      setState(() => _gameState = gameState);
+    _gameClient.start(onConnectionStateChanged: (connected) {
+      setState(() => _connected = connected);
+    }, onWorldStateUpdated: (worldState) {
+      setState(() => _worldState = worldState);
+    }, onDebugInfoUpdated: (debugInfo) {
+      setState(() => _debugInfo = debugInfo);
     });
   }
 
@@ -32,25 +40,102 @@ class _AsteroidsState extends State<Asteroids> {
 
   @override
   Widget build(BuildContext context) {
-    if (_gameState == null) {
+    if (!_connected) {
       return Center(
         child: Text("Connecting..."),
       );
     }
-    return Container(
-      constraints: BoxConstraints.expand(),
-      child: CustomPaint(
-        painter: AsteroidsPaint(_gameState),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        CustomPaint(
+          painter: AsteroidsPaint(_worldState),
+        ),
+        _buildControls(),
+        _buildDebugInfo(),
+      ],
+    );
+  }
+
+  Widget _buildControls() {
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 32),
+        child: Material(
+          type: MaterialType.transparency,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: <Widget>[
+              _buildInputButton("▲", "up"),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  _buildInputButton("◀", "left"),
+                  _buildInputButton("▼", "down"),
+                  _buildInputButton("▶", "right"),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
+  }
+
+  Widget _buildInputButton(String label, String action) {
+    return Listener(
+      child: InkWell(
+        splashColor: Colors.blue,
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: SizedBox(
+            width: 80,
+            height: 60,
+            child: Center(
+              child: Text(label, style: Theme.of(context).textTheme.headline),
+            ),
+          ),
+        ),
+        onTap: () {},
+      ),
+      onPointerDown: (_) => _action(true, action),
+      onPointerUp: (_) => _action(false, action),
+      onPointerCancel: (_) => _action(false, action),
+    );
+  }
+
+  void _action(bool down, String action) => _gameClient.input(down, action);
+
+  Widget _buildDebugInfo() {
+    if (_debugInfo != null)
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              color: Colors.grey.shade800.withOpacity(0.4),
+              child: Text(
+                  "Initial tick: ${_debugInfo.connectMessage?.serverTick}\n"
+                  "Update rate: ${_debugInfo.connectMessage?.serverStateUpdateMs}ms\n"
+                  "RTT: ${_debugInfo.rttMs.toStringAsFixed(1)}ms\n"
+                  "Interpolation delay: ${_debugInfo.interpolationDelayMs.toStringAsFixed(1)}ms"),
+            ),
+          ),
+        ),
+      );
+    else
+      return Container();
   }
 }
 
 class AsteroidsPaint extends CustomPainter {
-  final GameState gameState;
+  final WorldState worldState;
   Paint _asteroidPaint;
 
-  AsteroidsPaint(this.gameState) {
+  AsteroidsPaint(this.worldState) {
     _asteroidPaint = Paint();
     _asteroidPaint.color = Colors.white;
     _asteroidPaint.style = PaintingStyle.stroke;
@@ -59,12 +144,17 @@ class AsteroidsPaint extends CustomPainter {
 
   @override
   bool shouldRepaint(AsteroidsPaint oldDelegate) =>
-      gameState != oldDelegate.gameState;
+      worldState != oldDelegate.worldState;
 
   @override
   void paint(Canvas canvas, Size size) {
     canvas.drawColor(Colors.black, BlendMode.clear);
-    gameState.asteroids.forEach((asteroid) {
+
+    if (worldState == null) {
+      return;
+    }
+
+    worldState.asteroids.forEach((asteroid) {
       final offset = _posToOffset(asteroid.x, asteroid.y, size);
       final radius = _sizeToRadius(asteroid.size, size);
       canvas.drawCircle(offset, radius, _asteroidPaint);

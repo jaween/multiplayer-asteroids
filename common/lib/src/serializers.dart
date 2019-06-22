@@ -4,7 +4,7 @@ import 'package:built_value/standard_json_plugin.dart';
 import 'package:multiplayer_asteroids_common/src/asteroid.dart';
 import 'package:multiplayer_asteroids_common/src/message.dart';
 import 'package:multiplayer_asteroids_common/src/player.dart';
-import 'package:multiplayer_asteroids_common/src/request.dart';
+import 'package:multiplayer_asteroids_common/src/user_command.dart';
 import 'package:multiplayer_asteroids_common/src/world_state.dart';
 
 part 'serializers.g.dart';
@@ -12,6 +12,7 @@ part 'serializers.g.dart';
 /// Serializers for network messages
 @SerializersFor(const [
   ConnectMessage,
+  UserCommandMessage,
   WorldStateMessage,
 ])
 final Serializers messageSerializers = (_$messageSerializers.toBuilder()
@@ -23,7 +24,7 @@ final Serializers messageSerializers = (_$messageSerializers.toBuilder()
   Asteroid,
   WorldState,
   Player,
-  Request,
+  UserCommand,
 ])
 final Serializers serializers =
     (_$serializers.toBuilder()..addPlugin(new StandardJsonPlugin())).build();
