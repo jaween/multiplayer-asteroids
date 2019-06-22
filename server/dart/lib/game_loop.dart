@@ -7,13 +7,13 @@ class GameLoop {
   static const double width = 1000;
   static const double height = 1000;
 
-  GameState gameState;
+  WorldState worldState;
 
   GameLoop() {
-    gameState = _create();
+    worldState = _create();
   }
 
-  GameState _create() {
+  WorldState _create() {
     final random = Random();
 
     final asteroidsList = List.generate(random.nextInt(10) + 2, (_) {
@@ -25,14 +25,14 @@ class GameLoop {
         ..speed = random.nextDouble() * 2 + 3);
     });
 
-    return GameState((b) => b
+    return WorldState((b) => b
       ..asteroids = BuiltList.of(asteroidsList).toBuilder()
       ..players = BuiltList.of(<Player>[]).toBuilder());
   }
 
   void update() {
     // Asteroid locations
-    gameState = gameState.rebuild((b) {
+    worldState = worldState.rebuild((b) {
       final asteroids = b.asteroids.build().map((asteroid) {
         var newX = asteroid.x + cos(asteroid.angle) * asteroid.speed;
         var newY = asteroid.y + sin(asteroid.angle) * asteroid.speed;

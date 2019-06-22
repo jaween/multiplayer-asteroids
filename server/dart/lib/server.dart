@@ -20,9 +20,13 @@ class Server {
   final _clientSockets = <String, Socket>{};
   final _gameLoop = GameLoop();
 
+  final _updateRate = const Duration(milliseconds: 16);
+  final _publishRate = const Duration(milliseconds: 100);
+
   Server() {
     _listen();
     _updateState();
+    _publishState();
     _removeOldClients();
   }
 
@@ -35,32 +39,56 @@ class Server {
   }
 
   void _onConnection(Socket socket, ClientInfo clientInfo) {
+    final playerId = _clientSockets.length;
     final clientAddressPort = "${clientInfo.address}:${clientInfo.port}";
     print("Client connected $clientAddressPort");
 
+    final connectMessage = ConnectMessage((b) => b
+      ..serverTick = 0
+      ..serverStateUpdateMs = _updateRate.inMilliseconds
+      ..serverStatePublishMs = _publishRate.inMilliseconds
+      ..playerId = playerId);
+    _send(socket, connectMessage);
+
     _clientSockets[clientAddressPort] = socket;
 
-    socket.listen((data) {
-      final messageString = String.fromCharCodes(data);
-      print("From $clientAddressPort '$messageString'");
+    socket.listen((data) => _onMessage(clientAddressPort, clientInfo, data));
+  }
 
-      if (_clients.containsKey(clientAddressPort)) {
-        _clients[clientAddressPort].lastSeen = DateTime.now();
-      } else {
-        _clients[clientAddressPort] =
-            Client(clientInfo.address, clientInfo.port)
-              ..lastSeen = DateTime.now();
-        _gameLoop.addPlayer(clientAddressPort);
+  void _onMessage(
+    String clientAddressPort,
+    ClientInfo clientInfo,
+    dynamic data,
+  ) {
+    final messageString = String.fromCharCodes(data);
+    if (_clients.containsKey(clientAddressPort)) {
+      _clients[clientAddressPort].lastSeen = DateTime.now();
+    } else {
+      _clients[clientAddressPort] = Client(clientInfo.address, clientInfo.port)
+        ..lastSeen = DateTime.now();
+      _gameLoop.addPlayer(clientAddressPort);
+    }
+  }
+
+  void _updateState() {
+    int lastUpdateTick = 0;
+    Timer.periodic(_updateRate, (timer) {
+      while (lastUpdateTick < timer.tick) {
+        _gameLoop.update();
+        lastUpdateTick++;
       }
     });
   }
 
-  void _updateState() {
-    Timer.periodic(Duration(milliseconds: 16), (_) {
-      _gameLoop.update();
+  void _publishState() {
+    Timer.periodic(_publishRate, (_) {
       _clientSockets.forEach((client, socket) {
-        final message = jsonEncode(serializers.serialize(_gameLoop.gameState));
-        socket.send(Uint8List.fromList(message.codeUnits));
+        _send(
+          socket,
+          WorldStateMessage(
+            (b) => b..worldState = _gameLoop.worldState.toBuilder(),
+          ),
+        );
       });
     });
   }
@@ -80,5 +108,10 @@ class Server {
         });
       }
     });
+  }
+
+  void _send(Socket socket, Message message) {
+    final json = jsonEncode(messageSerializers.serialize(message));
+    socket.send(Uint8List.fromList(json.codeUnits));
   }
 }
