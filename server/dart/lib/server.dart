@@ -4,7 +4,6 @@ import 'dart:typed_data';
 
 import 'package:multiplayer_asteroids_common/common.dart';
 import 'package:multiplayer_asteroids_server/comms/comms_server_js.dart';
-import 'package:multiplayer_asteroids_server/game_loop.dart';
 import 'package:node_io/node_io.dart';
 
 class Client {

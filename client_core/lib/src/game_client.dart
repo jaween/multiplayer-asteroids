@@ -28,6 +28,7 @@ class GameClient {
   Timer _tickTimer;
   int _clientSideTick;
   Map<int, WorldState> _worldStates = {};
+  WorldState _predictedWorldState;
   Set<String> _inputState = {};
   Map<int, Set<String>> _pastInputStates = {};
   Map<int, DateTime> _ticksAwaitingAck = {};
@@ -52,23 +53,38 @@ class GameClient {
   }
 
   void _onUpdate(int tick) {
-    _inputPrediction(tick);
-    _worldInterpolation(tick);
     _sendInput(tick);
+
+    final predicted = _inputPrediction(tick);
+    final interpolated = _worldInterpolation(tick);
+    final worldState = interpolated?.rebuild((b) {
+          b..players.replace(predicted.players);
+        }) ??
+        predicted;
+    _onWorldStateUpdated(worldState);
   }
 
-  void _inputPrediction(int tick) {
-    // TODO
+  WorldState _inputPrediction(int tick) {
+    final gameLoop = GameLoop.fromWorldState(_predictedWorldState);
+    final playerId = _connectMessage.playerId;
+    Player player = _predictedWorldState.players[playerId];
+    player = gameLoop.updatePlayer(player, _inputState);
+    _predictedWorldState = _predictedWorldState.rebuild((b) {
+      final newPlayers = _predictedWorldState.players.toMap();
+      newPlayers[playerId] = player;
+      b..players.replace(newPlayers);
+    });
+    return _predictedWorldState;
   }
 
-  void _worldInterpolation(int tick) {
+  WorldState _worldInterpolation(int tick) {
     final timeInPastToSimulateMs = 100;
     final ticksInPastToSimulate =
         (timeInPastToSimulateMs / _connectMessage.serverStateUpdateMs).ceil();
     final tickToSimulate = tick - ticksInPastToSimulate;
     final interpolationTicks = _findTicksToInterpolate(tick, tickToSimulate);
     if (interpolationTicks == null) {
-      return;
+      return null;
     }
 
     // Interpolate between two states
@@ -79,8 +95,7 @@ class GameClient {
     final ratio = fromTick == toTick
         ? 0.0
         : (tickToSimulate - fromTick) / (toTick - fromTick);
-    final interpolatedWorldState = _interpolate(fromState, toState, ratio);
-    _onWorldStateUpdated(interpolatedWorldState);
+    return _interpolate(fromState, toState, ratio);
   }
 
   Tuple2<int, int> _findTicksToInterpolate(int tick, int tickToSimulate) {
@@ -213,6 +228,25 @@ class GameClient {
     _worldStates.removeWhere((key, value) => key < message.serverTick - 50);
 
     // Replays past input events
+    _predictedWorldState = message.worldState;
+    final playerId = _connectMessage.playerId;
+    Player player = message.worldState.players[playerId];
+
+    // It's possible that the player is not available just after connecting
+    if (player == null) {
+      return;
+    }
+
+    // Performs the actual replay of input events
+    final gameLoop = GameLoop.fromWorldState(message.worldState);
+    _pastInputStates.values.forEach((commands) {
+      commands.forEach((command) {
+        player = gameLoop.updatePlayer(player, commands);
+      });
+    });
+    _predictedWorldState = gameLoop.worldState;
+
+    _pastInputStates.clear();
   }
 
   void _onAckMessage(AckMessage message) {

@@ -7,11 +7,14 @@ class GameLoop {
   static const double width = 1000;
   static const double height = 1000;
 
-  WorldState worldState;
+  WorldState _worldState;
+  WorldState get worldState => _worldState;
 
   GameLoop() {
-    worldState = _create();
+    _worldState = _create();
   }
+
+  GameLoop.fromWorldState(this._worldState);
 
   WorldState _create() {
     final random = Random();
@@ -31,7 +34,7 @@ class GameLoop {
   }
 
   void update(Map<int, Set<String>> userCommands) {
-    worldState = worldState.rebuild((b) {
+    _worldState = _worldState.rebuild((b) {
       // Asteroid locations
       final asteroids = b.asteroids.build().map((asteroid) {
         var newX = asteroid.x + cos(asteroid.angle) * asteroid.speed;
@@ -63,7 +66,7 @@ class GameLoop {
 
       // Player locations and actions
       final updatedPlayers = <int, Player>{};
-      final currentPlayers = worldState.players;
+      final currentPlayers = _worldState.players;
       currentPlayers.forEach((id, player) {
         final commands = userCommands[id] ?? {};
         updatedPlayers[id] = updatePlayer(player, commands);
@@ -121,7 +124,7 @@ class GameLoop {
 
   void addPlayer(int playerId) {
     final random = Random();
-    worldState = worldState.rebuild((b) {
+    _worldState = _worldState.rebuild((b) {
       b.players[playerId] = Player((b) {
         b
           ..name = "Player $playerId"
@@ -135,7 +138,7 @@ class GameLoop {
   }
 
   void removePlayer(int playerId) {
-    worldState = worldState.rebuild((b) {
+    _worldState = _worldState.rebuild((b) {
       b.players.remove(playerId);
     });
   }

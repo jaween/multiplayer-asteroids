@@ -72,7 +72,6 @@ class _AsteroidsState extends State<Asteroids> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
                   _buildInputButton("◀", "left"),
-                  _buildInputButton("▼", "down"),
                   _buildInputButton("▶", "right"),
                 ],
               ),
