@@ -5,11 +5,12 @@ import 'package:multiplayer_asteroids_common/common.dart';
 import 'package:js/js.dart';
 
 @JS()
-class WebSocketServer implements CommsServer {
-  external factory WebSocketServer();
+class WebSocketClient implements CommsClient {
+  external factory WebSocketClient();
   external void start(
+    String host,
     int port,
-    void onConnection(WebSocket socket, ClientInfo client),
+    void onConnected(WebSocket socket),
   );
   external void close();
 }
@@ -20,15 +21,4 @@ class WebSocket implements Socket {
   external void send(data);
   external void listen(void onMessage(data));
   external void close();
-}
-
-@JS()
-@anonymous
-class WebSocketClientInfo implements ClientInfo {
-  external String get address;
-  external int get port;
-  external factory WebSocketClientInfo({
-    String address,
-    int port,
-  });
 }
