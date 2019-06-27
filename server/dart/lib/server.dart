@@ -2,29 +2,30 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:built_collection/built_collection.dart';
 import 'package:multiplayer_asteroids_common/common.dart';
 import 'package:multiplayer_asteroids_server/comms/comms_server_js.dart';
 import 'package:node_io/node_io.dart';
 
 class Client {
-  final String address;
-  final int port;
-  DateTime lastSeen;
+  final int playerId;
+  final ClientInfo clientInfo;
+  final Socket socket;
 
-  Client(this.address, this.port);
+  Client(this.playerId, this.clientInfo, this.socket);
 }
 
 class Server {
-  final _clients = <String, Client>{};
-  final _clientSockets = <String, Socket>{};
   final _gameLoop = GameLoop();
+  int _serverTick = 0;
 
   final _updateRate = const Duration(milliseconds: 16);
   final _publishRate = const Duration(milliseconds: 100);
 
+  final _clients = <Client>[];
   final _userCommands = <int, Map<int, Set<String>>>{};
-
-  int _serverTick = 0;
+  final _ticksAwaitingPlayerAck = <int, Set<int>>{};
+  final _ticksToAck = <int, Map<int, DateTime>>{};
 
   Server() {
     _listen();
@@ -42,12 +43,14 @@ class Server {
   }
 
   void _onConnection(Socket socket, ClientInfo clientInfo) {
-    final playerId = _clientSockets.length;
-    final clientAddressPort = "${clientInfo.address}:${clientInfo.port}";
-    print("Client connected $clientAddressPort");
+    print("Client connected ${clientInfo.address}:${clientInfo.port}");
+    final playerId = _clients.length;
+    final client = Client(playerId, clientInfo, socket);
 
     _gameLoop.addPlayer(playerId);
-    _clientSockets[clientAddressPort] = socket;
+    _clients.add(client);
+    _ticksAwaitingPlayerAck[playerId] = {};
+    _ticksToAck[playerId] = {};
 
     final connectMessage = ConnectMessage((b) => b
       ..serverTick = _serverTick
@@ -56,35 +59,20 @@ class Server {
       ..playerId = playerId);
     _send(socket, connectMessage);
 
-    socket.listen((data) => _onMessage(
-          socket,
-          clientAddressPort,
-          clientInfo,
-          playerId,
-          data,
-        ));
+    socket.listen((data) => _onMessage(client, data));
   }
 
-  void _onMessage(
-    Socket socket,
-    String clientAddressPort,
-    ClientInfo clientInfo,
-    int playerId,
-    dynamic data,
-  ) {
+  void _onMessage(Client client, dynamic data) {
     final receiveTime = DateTime.now();
 
     if (data is Uint8List) {
       final json = String.fromCharCodes(data);
       final message = Message.fromJson(json);
+
+      _ticksToAck[client.playerId][message.tick] = receiveTime;
+
       if (message is UserCommandMessage) {
-        _onUserCommandMessage(
-          socket,
-          clientInfo,
-          playerId,
-          message,
-          receiveTime,
-        );
+        _onUserCommandMessage(client, message, receiveTime);
       }
     } else {
       print("Unknown data received $data");
@@ -92,9 +80,7 @@ class Server {
   }
 
   void _onUserCommandMessage(
-    Socket socket,
-    ClientInfo clientInfo,
-    int playerId,
+    Client client,
     UserCommandMessage message,
     DateTime receiveTime,
   ) {
@@ -103,16 +89,9 @@ class Server {
       print("${DateTime.now()} late by ${ticksAhead.abs()} ticks");
     } else {
       _userCommands.putIfAbsent(message.tick, () => <int, Set<String>>{});
-      _userCommands[message.tick][playerId] =
+      _userCommands[message.tick][client.playerId] =
           message.userCommand.commands.toSet();
     }
-
-    final processingTime = DateTime.now().difference(receiveTime);
-    final ackMessage = AckMessage((b) => b
-      ..tick = message.tick
-      ..processingTimeMicro = processingTime.inMicroseconds);
-
-    _send(socket, ackMessage);
   }
 
   void _updateState() {
@@ -129,34 +108,53 @@ class Server {
 
   void _publishState() {
     Timer.periodic(_publishRate, (_) {
-      _clientSockets.forEach((client, socket) {
+      final message = WorldStateMessage(
+        (b) => b
+          ..serverTick = _serverTick
+          ..worldState = _gameLoop.worldState.toBuilder(),
+      );
+      _clients.forEach((client) {
         _send(
-          socket,
-          WorldStateMessage(
-            (b) => b
-              ..serverTick = _serverTick
-              ..worldState = _gameLoop.worldState.toBuilder(),
-          ),
+          client.socket,
+          message,
         );
+        _ticksAwaitingPlayerAck[client.playerId].add(_serverTick);
+
+        // TODO: Piggyback on world state message
+        _send(client.socket, _buildAcksForPlayer(client.playerId));
       });
     });
   }
 
+  AckMessage _buildAcksForPlayer(int playerId) {
+    final ticksToAck = _ticksToAck[playerId];
+    final message = AckMessage(
+      (b) => b
+        ..sequenceNums = ListBuilder(ticksToAck.keys)
+        ..holdingTimeMicros = ListBuilder(
+          ticksToAck.values.map((receiveTime) =>
+              DateTime.now().difference(receiveTime).inMicroseconds),
+        ),
+    );
+    _ticksToAck[playerId].clear();
+    return message;
+  }
+
   void _removeOldClients() {
-    Timer.periodic(Duration(seconds: 8), (_) {
-      final clientsToRemove = _clients.entries
-          .where((entry) =>
-              DateTime.now().difference(entry.value.lastSeen).inSeconds > 8)
-          .map((entry) => entry.key)
-          .toList(growable: false);
-      if (clientsToRemove.length > 0) {
-        print("Dropping clients: $clientsToRemove");
-        clientsToRemove.forEach((client) {
-          _clients.remove(client);
-          //_gameLoop.removePlayer(client);
-        });
-      }
-    });
+    // Timer.periodic(Duration(seconds: 8), (_) {
+    //   final clientsToRemove = _clients.entries
+    //       .where((entry) =>
+    //           DateTime.now().difference(entry.value.lastSeen).inSeconds > 8)
+    //       .map((entry) => entry.key)
+    //       .toList(growable: false);
+    //   if (clientsToRemove.length > 0) {
+    //     print("Dropping clients: $clientsToRemove");
+    //     clientsToRemove.forEach((client) {
+    //       _clients.remove(client);
+    //       //_gameLoop.removePlayer(client);
+    //     });
+    //   }
+    // });
   }
 
   void _send(Socket socket, Message message) {

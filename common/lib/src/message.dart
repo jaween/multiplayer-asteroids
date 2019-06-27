@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:built_collection/built_collection.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
 import 'package:multiplayer_asteroids_common/src/serializers.dart';
@@ -67,12 +68,16 @@ abstract class UserCommandMessage
       .deserializeWith(UserCommandMessage.serializer, jsonDecode(jsonString));
 }
 
-/// Acknowledgement for a the input sent at a given tick.
+/// Acknowledgement for messages with given sequence numbers.
+///
+/// [holdingTimeMicros] contains the number of microseconds the item with the
+/// corresponding index in [sequenceNums] was held for before being
+/// acknowledged.
 @BuiltValue(wireName: "ackMessage")
 abstract class AckMessage
     implements Message, Built<AckMessage, AckMessageBuilder> {
-  int get tick;
-  int get processingTimeMicro;
+  BuiltList<int> get sequenceNums;
+  BuiltList<int> get holdingTimeMicros;
 
   AckMessage._();
   factory AckMessage([updates(AckMessageBuilder b)]) = _$AckMessage;
