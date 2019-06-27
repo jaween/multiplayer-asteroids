@@ -4,11 +4,10 @@
   "description": "Server-side core of the Astroids game supporting multiple players.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "_build": "mkdir -p build && ./build.sh",
+    "build": "./build.sh --release",
     "start": "node build/main.js",
-    "dev": "npm run _build && npm run start",
-    "deploy": "npm run _build && cd .. && git subtree push --prefix game_server heroku master"
+    "dev": "./build.sh && npm run start",
+    "clean": "rm -rf build"
   },
   "keywords": [],
   "author": "Jaween Ediriweera",
@@ -16,6 +15,5 @@
   "dependencies": {
     "isomorphic-ws": "^4.0.1",
     "ws": "^7.0.0"
-  },
-  "heroku-run-build-script": false
+  }
 }
