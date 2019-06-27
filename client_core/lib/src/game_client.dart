@@ -33,6 +33,7 @@ class GameClient {
   Map<int, Set<String>> _pastInputStates = {};
   Map<int, DateTime> _ticksAwaitingAck = {};
   double _roundTripTimeMs = 0;
+  Set<int> _worldStatesToAck = {};
 
   GameClient(this._host, this._port, this._commsClient);
 
@@ -156,6 +157,7 @@ class GameClient {
 
     final message = UserCommandMessage((b) => b
       ..tick = futureTick
+      ..worldStateAcks = BuiltSet<int>.from(_worldStatesToAck).toBuilder()
       ..userCommand = UserCommand((b) {
         b..commands = BuiltSet<String>.from(_inputState).toBuilder();
       }).toBuilder());
@@ -245,23 +247,33 @@ class GameClient {
       });
     });
     _predictedWorldState = gameLoop.worldState;
-
     _pastInputStates.clear();
+
+    // Need to acknowledge this world state in the next user command
+    _worldStatesToAck.add(message.serverTick);
   }
 
   void _onAckMessage(AckMessage message) {
     final receiveTime = DateTime.now();
+    var roundTripSum = Duration(milliseconds: 0);
 
-    if (!_ticksAwaitingAck.containsKey(message.tick)) {
-      return;
+    var count = 0;
+    for (var i = 0; i < message.sequenceNums.length; i++) {
+      final seq = message.sequenceNums[i];
+      if (!_ticksAwaitingAck.containsKey(seq)) {
+        continue;
+      }
+
+      final sendTime = _ticksAwaitingAck[seq];
+      final holdTime = Duration(microseconds: message.holdingTimeMicros[i]);
+      roundTripSum += receiveTime.difference(sendTime) - holdTime;
+      count++;
     }
 
-    final sendTime = _ticksAwaitingAck[message.tick];
-    final processingMs = message.processingTimeMicro / 1000;
-    _ticksAwaitingAck.remove(message.tick);
-
-    _roundTripTimeMs =
-        receiveTime.difference(sendTime).inMilliseconds - processingMs;
+    if (count == 0) {
+      return;
+    }
+    _roundTripTimeMs = roundTripSum.inMilliseconds / count;
     _debugInfo.rttMs = _roundTripTimeMs;
     _onDebugInfoUpdated(_debugInfo);
   }

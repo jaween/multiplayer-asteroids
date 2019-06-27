@@ -57,6 +57,7 @@ abstract class UserCommandMessage
     implements Message, Built<UserCommandMessage, UserCommandMessageBuilder> {
   int get tick;
   UserCommand get userCommand;
+  BuiltSet<int> get worldStateAcks;
 
   UserCommandMessage._();
   factory UserCommandMessage([updates(UserCommandMessageBuilder b)]) =

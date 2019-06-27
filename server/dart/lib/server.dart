@@ -92,6 +92,11 @@ class Server {
       _userCommands[message.tick][client.playerId] =
           message.userCommand.commands.toSet();
     }
+
+    // Acknowledges player has received world states
+    message.worldStateAcks.forEach((tick) {
+      _ticksAwaitingPlayerAck[client.playerId].remove(tick);
+    });
   }
 
   void _updateState() {
@@ -141,20 +146,21 @@ class Server {
   }
 
   void _removeOldClients() {
-    // Timer.periodic(Duration(seconds: 8), (_) {
-    //   final clientsToRemove = _clients.entries
-    //       .where((entry) =>
-    //           DateTime.now().difference(entry.value.lastSeen).inSeconds > 8)
-    //       .map((entry) => entry.key)
-    //       .toList(growable: false);
-    //   if (clientsToRemove.length > 0) {
-    //     print("Dropping clients: $clientsToRemove");
-    //     clientsToRemove.forEach((client) {
-    //       _clients.remove(client);
-    //       //_gameLoop.removePlayer(client);
-    //     });
-    //   }
-    // });
+    Timer.periodic(Duration(seconds: 10), (_) {
+      final playersToRemove = [];
+      _ticksAwaitingPlayerAck.forEach((playerId, awaitingAck) {
+        if (awaitingAck.length > 25) {
+          playersToRemove.add(playerId);
+        }
+      });
+
+      playersToRemove.forEach((playerId) {
+        print("Dropping player $playerId");
+        _gameLoop.removePlayer(playerId);
+        _clients.removeWhere((client) => client.playerId == playerId);
+        _ticksAwaitingPlayerAck.remove(playerId);
+      });
+    });
   }
 
   void _send(Socket socket, Message message) {
