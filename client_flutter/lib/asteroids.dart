@@ -237,11 +237,28 @@ class AsteroidsPaint extends CustomPainter {
       ..lineTo(-playerSize / 3, 0)
       ..close();
     worldState.players.forEach((id, player) {
-      final o = _posToOffset(player.x, player.y, size);
+      final playerScreenPos = _posToOffset(player.x, player.y, size);
       final transformed = shipPath
           .transform(Matrix4.rotationZ(player.angle).storage)
-          .transform(Matrix4.translationValues(o.dx, o.dy, 0).storage);
+          .transform(Matrix4.translationValues(
+                  playerScreenPos.dx, playerScreenPos.dy, 0)
+              .storage);
       canvas.drawPath(transformed, _asteroidPaint);
+
+      if (!debug) {
+        final textSpan = TextSpan(
+          text: player.name,
+          style: TextStyle(color: Colors.white),
+        );
+        final textPainter = TextPainter(
+          text: textSpan,
+          textAlign: TextAlign.center,
+          textDirection: TextDirection.ltr,
+        );
+        textPainter.layout();
+        final textPos = playerScreenPos - Offset(textPainter.width / 2, 40);
+        textPainter.paint(canvas, textPos);
+      }
     });
   }
 
