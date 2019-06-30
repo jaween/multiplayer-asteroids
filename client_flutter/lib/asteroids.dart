@@ -19,7 +19,7 @@ class _AsteroidsState extends State<Asteroids> {
   @override
   void initState() {
     super.initState();
-    final host = "ws://192.168.1.21";
+    final host = "ws://192.168.1.117";
     final port = 8081;
     final comms = CommsClientWebsocket();
     _gameClient = GameClient(host, port, comms);
@@ -45,15 +45,56 @@ class _AsteroidsState extends State<Asteroids> {
         child: Text("Connecting..."),
       );
     }
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        CustomPaint(
-          painter: AsteroidsPaint(_worldState),
-        ),
-        _buildControls(),
-        _buildDebugInfo(),
-      ],
+    return Scaffold(
+      appBar: AppBar(
+        actions: <Widget>[
+          PopupMenuButton<MenuItem>(
+            onSelected: _onMenuSelect,
+            itemBuilder: (context) {
+              return <PopupMenuEntry<MenuItem>>[
+                CheckedPopupMenuItem(
+                  checked: _gameClient.showStats,
+                  value: MenuItem.showStats,
+                  child: const Text("Show stats"),
+                ),
+                CheckedPopupMenuItem(
+                  checked: _gameClient.showAuthState,
+                  value: MenuItem.showAuthState,
+                  child: const Text("Show server state"),
+                ),
+                PopupMenuDivider(),
+                CheckedPopupMenuItem(
+                  checked: _gameClient.useWorldInterpolation,
+                  value: MenuItem.useWorldInterpolation,
+                  child: const Text("Use interpolation"),
+                ),
+                CheckedPopupMenuItem(
+                  checked: _gameClient.useInputPrediction,
+                  value: MenuItem.useInputPrediction,
+                  child: const Text("Use input prediction"),
+                ),
+              ];
+            },
+          ),
+        ],
+      ),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          CustomPaint(
+            painter: AsteroidsPaint(_worldState),
+          ),
+          if (_gameClient.showAuthState)
+            CustomPaint(
+              painter: AsteroidsPaint(
+                _debugInfo.authWorldState,
+                debug: true,
+              ),
+            ),
+          _buildControls(),
+          if (_gameClient.showStats) _buildDebugInfo(),
+        ],
+      ),
     );
   }
 
@@ -128,17 +169,36 @@ class _AsteroidsState extends State<Asteroids> {
     else
       return Container();
   }
+
+  void _onMenuSelect(MenuItem menuItem) {
+    switch (menuItem) {
+      case MenuItem.showStats:
+        _gameClient.showStats = !_gameClient.showStats;
+        break;
+      case MenuItem.showAuthState:
+        _gameClient.showAuthState = !_gameClient.showAuthState;
+        break;
+      case MenuItem.useWorldInterpolation:
+        _gameClient.useWorldInterpolation = !_gameClient.useWorldInterpolation;
+        break;
+      case MenuItem.useInputPrediction:
+        _gameClient.useInputPrediction = !_gameClient.useInputPrediction;
+        break;
+    }
+    setState(() {});
+  }
 }
 
 class AsteroidsPaint extends CustomPainter {
   final WorldState worldState;
+  final bool debug;
   Paint _asteroidPaint;
 
-  AsteroidsPaint(this.worldState) {
+  AsteroidsPaint(this.worldState, {this.debug = false}) {
     _asteroidPaint = Paint();
-    _asteroidPaint.color = Colors.white;
     _asteroidPaint.style = PaintingStyle.stroke;
     _asteroidPaint.strokeWidth = 2;
+    _asteroidPaint.color = debug ? Colors.pink.withOpacity(0.5) : Colors.white;
   }
 
   @override
@@ -147,7 +207,9 @@ class AsteroidsPaint extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.drawColor(Colors.black, BlendMode.clear);
+    if (!debug) {
+      canvas.drawColor(Colors.black, BlendMode.clear);
+    }
 
     if (worldState == null) {
       return;
@@ -182,4 +244,11 @@ class AsteroidsPaint extends CustomPainter {
   double _sizeToRadius(double asteroidSize, Size size) {
     return asteroidSize / 1000 * size.width;
   }
+}
+
+enum MenuItem {
+  showStats,
+  showAuthState,
+  useWorldInterpolation,
+  useInputPrediction,
 }

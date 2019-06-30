@@ -35,6 +35,11 @@ class GameClient {
   double _roundTripTimeMs = 0;
   Set<int> _worldStatesToAck = {};
 
+  bool showStats = true;
+  bool showAuthState = false;
+  bool useWorldInterpolation = true;
+  bool useInputPrediction = true;
+
   GameClient(this._host, this._port, this._commsClient);
 
   void start({
@@ -56,8 +61,17 @@ class GameClient {
   void _onUpdate(int tick) {
     _sendInput(tick);
 
-    final predicted = _inputPrediction(tick);
-    final interpolated = _worldInterpolation(tick);
+    var predicted = _worldStates.values.last;
+    var interpolated = _worldStates.values.last;
+
+    if (useInputPrediction) {
+      predicted = _inputPrediction(tick);
+    }
+
+    if (useWorldInterpolation) {
+      interpolated = _worldInterpolation(tick);
+    }
+
     final worldState = interpolated?.rebuild((b) {
           b..players.replace(predicted.players);
         }) ??
@@ -68,7 +82,7 @@ class GameClient {
   WorldState _inputPrediction(int tick) {
     final gameLoop = GameLoop.fromWorldState(_predictedWorldState);
     final playerId = _connectMessage.playerId;
-    Player player = _predictedWorldState.players[playerId];
+    var player = _predictedWorldState.players[playerId];
     player = gameLoop.updatePlayer(player, _inputState);
     _predictedWorldState = _predictedWorldState.rebuild((b) {
       final newPlayers = _predictedWorldState.players.toMap();
@@ -251,6 +265,11 @@ class GameClient {
 
     // Need to acknowledge this world state in the next user command
     _worldStatesToAck.add(message.serverTick);
+
+    _debugInfo.authWorldState = message.worldState;
+    if (_onDebugInfoUpdated != null) {
+      _onDebugInfoUpdated(_debugInfo);
+    }
   }
 
   void _onAckMessage(AckMessage message) {
