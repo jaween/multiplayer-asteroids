@@ -14,8 +14,24 @@ class Game extends StatelessWidget {
     return MaterialApp(
       theme: ThemeData.dark(),
       home: Scaffold(
-        body: Asteroids(),
+        body: AsteroidsWrapper(),
       ),
     );
   }
+}
+
+class AsteroidsWrapper extends StatefulWidget {
+  @override
+  _AsteroidsWrapperState createState() => _AsteroidsWrapperState();
+}
+
+class _AsteroidsWrapperState extends State<AsteroidsWrapper> {
+  var _key = UniqueKey();
+
+  @override
+  Widget build(BuildContext context) {
+    return Asteroids(key: _key, restart: _restart);
+  }
+
+  void _restart() => setState(() => _key = UniqueKey());
 }

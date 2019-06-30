@@ -6,6 +6,10 @@ import 'package:multiplayer_asteroids_client_flutter/comms/comms_client_websocke
 import 'package:multiplayer_asteroids_common/common.dart';
 
 class Asteroids extends StatefulWidget {
+  final Function restart;
+
+  Asteroids({Key key, this.restart}) : super(key: key);
+
   @override
   _AsteroidsState createState() => _AsteroidsState();
 }
@@ -48,6 +52,10 @@ class _AsteroidsState extends State<Asteroids> {
     return Scaffold(
       appBar: AppBar(
         actions: <Widget>[
+          IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: widget.restart,
+          ),
           PopupMenuButton<MenuItem>(
             onSelected: _onMenuSelect,
             itemBuilder: (context) {
